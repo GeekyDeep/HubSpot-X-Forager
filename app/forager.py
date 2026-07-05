@@ -82,11 +82,7 @@ def get_work_email(person_id: int = None, linkedin_id: str = None) -> Optional[s
         resp = client.post(url, json=payload, headers=_headers())
         if resp.status_code == 200:
             data = resp.json()
-            emails = data.get("work_emails") or data.get("emails") or []
-            if isinstance(emails, list) and emails:
-                return emails[0]
-            if isinstance(data.get("email"), str):
-                return data["email"]
+            return _extract_first_contact(data)
     return None
 
 
@@ -103,11 +99,7 @@ def get_personal_email(person_id: int = None, linkedin_id: str = None) -> Option
         resp = client.post(url, json=payload, headers=_headers())
         if resp.status_code == 200:
             data = resp.json()
-            emails = data.get("personal_emails") or data.get("emails") or []
-            if isinstance(emails, list) and emails:
-                return emails[0]
-            if isinstance(data.get("email"), str):
-                return data["email"]
+            return _extract_first_contact(data)
     return None
 
 
@@ -124,8 +116,7 @@ def get_phone(person_id: int = None, linkedin_id: str = None) -> Optional[str]:
         resp = client.post(url, json=payload, headers=_headers())
         if resp.status_code == 200:
             data = resp.json()
-            phone = data.get("phone_number") or data.get("phone")
-            return phone
+            return _extract_first_contact(data)
     return None
 
 
@@ -233,6 +224,21 @@ def _get_current_role(person: dict) -> Optional[dict]:
         if role.get("is_current") or role.get("end_date") is None:
             return role
     return roles[0] if roles else None
+
+
+def _extract_first_contact(data) -> Optional[str]:
+    """Handle both list and dict shapes from Forager contact lookup endpoints."""
+    if isinstance(data, list):
+        return data[0] if data else None
+    if isinstance(data, dict):
+        for key in ("work_emails", "personal_emails", "phone_numbers", "emails", "phones"):
+            val = data.get(key)
+            if isinstance(val, list) and val:
+                return val[0]
+        for key in ("work_email", "personal_email", "phone_number", "email", "phone"):
+            if data.get(key):
+                return data[key]
+    return None
 
 
 def _best_org_match(results: list, domain: str = None, name: str = None, linkedin_id: str = None) -> Optional[dict]:
