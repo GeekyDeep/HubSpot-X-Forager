@@ -59,7 +59,7 @@ def debug_forager(domain: str = "openai.com", name: str = None):
     if name:
         payload["name"] = name
     url = f"https://api-v2.forager.ai/api/{_os.environ['FORAGER_ACCOUNT_ID']}/datastorage/organization_search/"
-    headers = {"Content-Type": "application/json", "Authorization": f"Api-Key {_os.environ['FORAGER_API_KEY']}"}
+    headers = {"Content-Type": "application/json", "X-API-KEY": _os.environ["FORAGER_API_KEY"]}
     resp = _httpx.post(url, json=payload, headers=headers, timeout=30)
     return {"status": resp.status_code, "body": resp.json() if resp.status_code == 200 else resp.text}
 

@@ -1,7 +1,10 @@
 """Forager.ai API client for company and people enrichment."""
+import logging
 import os
 import httpx
 from typing import Optional
+
+log = logging.getLogger(__name__)
 
 BASE_URL = "https://api-v2.forager.ai/api"
 
@@ -31,6 +34,7 @@ def search_organization(domain: str = None, name: str = None) -> Optional[dict]:
         resp.raise_for_status()
         data = resp.json()
 
+    log.info("Forager org search payload=%s → keys=%s count=%s", payload, list(data.keys()), data.get("count"))
     results = data.get("results") or data.get("data") or []
     return results[0] if results else None
 
