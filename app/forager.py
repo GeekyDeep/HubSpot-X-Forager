@@ -20,12 +20,14 @@ def _account_id() -> str:
     return os.environ["FORAGER_ACCOUNT_ID"]
 
 
-def search_organization(domain: str = None, name: str = None) -> Optional[dict]:
-    """Search for an organization by domain or name. Returns the best match."""
+def search_organization(domain: str = None, name: str = None, linkedin_id: str = None) -> Optional[dict]:
+    """Search for an organization by domain, name, or LinkedIn identifier. Returns the best match."""
     payload = {"page": 1}
-    if domain:
+    if linkedin_id:
+        payload["linkedin_identifiers"] = [linkedin_id]
+    elif domain:
         payload["domains"] = [domain]
-    if name:
+    if name and not linkedin_id:
         payload["name"] = name
 
     url = f"{BASE_URL}/{_account_id()}/datastorage/organization_search/"
@@ -34,8 +36,8 @@ def search_organization(domain: str = None, name: str = None) -> Optional[dict]:
         resp.raise_for_status()
         data = resp.json()
 
-    log.info("Forager org search payload=%s → keys=%s count=%s", payload, list(data.keys()), data.get("count"))
-    results = data.get("results") or data.get("data") or []
+    log.info("Forager org search payload=%s → keys=%s total=%s", payload, list(data.keys()), data.get("total_search_results"))
+    results = data.get("search_results") or data.get("results") or data.get("data") or []
     return results[0] if results else None
 
 
@@ -60,7 +62,7 @@ def search_people_at_org(
         resp.raise_for_status()
         data = resp.json()
 
-    results = data.get("results") or data.get("data") or []
+    results = data.get("search_results") or data.get("results") or data.get("data") or []
     for item in results[:limit]:
         person = item.get("person") or item
         people.append(person)
@@ -127,12 +129,12 @@ def get_phone(person_id: int = None, linkedin_id: str = None) -> Optional[str]:
     return None
 
 
-def enrich_company(domain: str = None, name: str = None) -> Optional[dict]:
+def enrich_company(domain: str = None, name: str = None, linkedin_id: str = None) -> Optional[dict]:
     """
     Return a fully enriched company dict with all available fields.
     Credits used: 1 (organization_search).
     """
-    org = search_organization(domain=domain, name=name)
+    org = search_organization(domain=domain, name=name, linkedin_id=linkedin_id)
     if not org:
         return None
 

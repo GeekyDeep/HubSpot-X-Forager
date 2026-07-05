@@ -50,11 +50,13 @@ def health():
 
 
 @app.get("/debug/forager")
-def debug_forager(domain: str = "openai.com", name: str = None):
+def debug_forager(domain: str = None, name: str = None, linkedin_id: str = None):
     """Raw Forager org search — returns full API response for debugging."""
     import httpx as _httpx, os as _os
     payload = {"page": 1}
-    if domain:
+    if linkedin_id:
+        payload["linkedin_identifiers"] = [linkedin_id]
+    elif domain:
         payload["domains"] = [domain]
     if name:
         payload["name"] = name
@@ -148,8 +150,8 @@ def demo_openai(
     """
     log.info("=== DEMO: Enriching OpenAI + %d people ===", limit)
 
-    # 1. Enrich company
-    enriched_org = forager.enrich_company(domain="openai.com", name="OpenAI")
+    # 1. Enrich company — use LinkedIn identifier for exact match
+    enriched_org = forager.enrich_company(linkedin_id="openai", name="OpenAI")
     if not enriched_org:
         raise HTTPException(404, "OpenAI not found in Forager")
     log.info("Company enriched: %s", enriched_org.get("name"))
