@@ -37,7 +37,6 @@ def _company_props(enriched: dict) -> dict:
         "country": enriched.get("country"),
         "phone": enriched.get("phone"),
         "website": enriched.get("website") or enriched.get("domain"),
-        "hs_linkedin_company_page": enriched.get("linkedin_url"),  # standard HS property
     }.items() if v is not None}
 
 
@@ -113,7 +112,6 @@ def _contact_props(enriched: dict) -> dict:
         "city": enriched.get("city"),
         "state": enriched.get("state"),
         "country": enriched.get("country"),
-        "hs_linkedin_handle": _linkedin_handle(enriched.get("linkedin_url")),
         "website": enriched.get("company_domain"),
     }.items() if v is not None}
 
@@ -135,21 +133,7 @@ def _find_contact_by_email(email: str) -> Optional[str]:
 
 
 def _find_contact_by_linkedin(linkedin_url: str) -> Optional[str]:
-    handle = _linkedin_handle(linkedin_url)
-    if not handle:
-        return None
-    url = f"{BASE_URL}/crm/v3/objects/contacts/search"
-    payload = {
-        "filterGroups": [{"filters": [{"propertyName": "hs_linkedin_handle", "operator": "EQ", "value": handle}]}],
-        "properties": ["id"],
-        "limit": 1,
-    }
-    with httpx.Client(timeout=15) as client:
-        resp = client.post(url, json=payload, headers=_headers())
-        if resp.status_code == 200:
-            results = resp.json().get("results", [])
-            if results:
-                return results[0]["id"]
+    # LinkedIn handle property not available in all HubSpot portals; skip gracefully
     return None
 
 
