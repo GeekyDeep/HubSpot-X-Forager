@@ -31,16 +31,13 @@ def _company_props(enriched: dict) -> dict:
         "name": enriched.get("name"),
         "domain": enriched.get("domain"),
         "description": enriched.get("description"),
-        "industry": enriched.get("industry"),
-        "numberofemployees": str(enriched.get("headcount")) if enriched.get("headcount") else None,
-        "annualrevenue": str(enriched.get("revenue")) if enriched.get("revenue") else None,
-        "founded_year": str(enriched.get("founded_year")) if enriched.get("founded_year") else None,
+        "numberofemployees": enriched.get("headcount"),   # HubSpot expects integer
         "city": enriched.get("city"),
         "state": enriched.get("state"),
         "country": enriched.get("country"),
         "phone": enriched.get("phone"),
-        "linkedin_company_page": enriched.get("linkedin_url"),
-        "forager_id": str(enriched.get("forager_id")) if enriched.get("forager_id") else None,
+        "website": enriched.get("website") or enriched.get("domain"),
+        "hs_linkedin_company_page": enriched.get("linkedin_url"),  # standard HS property
     }.items() if v is not None}
 
 
@@ -115,8 +112,7 @@ def _contact_props(enriched: dict) -> dict:
         "state": enriched.get("state"),
         "country": enriched.get("country"),
         "hs_linkedin_handle": _linkedin_handle(enriched.get("linkedin_url")),
-        "linkedin_bio": enriched.get("description"),
-        "forager_id": str(enriched.get("forager_id")) if enriched.get("forager_id") else None,
+        "website": enriched.get("company_domain"),
     }.items() if v is not None}
 
 
