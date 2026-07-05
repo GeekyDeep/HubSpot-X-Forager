@@ -61,7 +61,8 @@ def _create_company(props: dict) -> dict:
     url = f"{BASE_URL}/crm/v3/objects/companies"
     with httpx.Client(timeout=15) as client:
         resp = client.post(url, json={"properties": props}, headers=_headers())
-        resp.raise_for_status()
+        if not resp.is_success:
+            raise ValueError(f"HubSpot company create failed {resp.status_code}: {resp.text}")
         data = resp.json()
         return {"id": data["id"], "action": "created", "properties": data.get("properties", {})}
 
@@ -70,7 +71,8 @@ def _update_company(company_id: str, props: dict) -> dict:
     url = f"{BASE_URL}/crm/v3/objects/companies/{company_id}"
     with httpx.Client(timeout=15) as client:
         resp = client.patch(url, json={"properties": props}, headers=_headers())
-        resp.raise_for_status()
+        if not resp.is_success:
+            raise ValueError(f"HubSpot company update failed {resp.status_code}: {resp.text}")
         data = resp.json()
         return {"id": data["id"], "action": "updated", "properties": data.get("properties", {})}
 
