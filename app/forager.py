@@ -184,9 +184,29 @@ def enrich_person(person: dict, fetch_email: bool = True, fetch_phone: bool = Tr
     Credits used: up to 5 (work email) + 15 (phone) = 20 per person.
     """
     person_id = person.get("id")
-    linkedin_id = person.get("linkedin_public_identifier") or person.get("linkedin_id")
+    li_info = person.get("linkedin_info") or {}
+    linkedin_id = (
+        person.get("linkedin_public_identifier")
+        or person.get("linkedin_id")
+        or li_info.get("public_identifier")
+    )
+    linkedin_url = (
+        person.get("linkedin_url")
+        or li_info.get("public_profile_url")
+        or _build_linkedin_url(linkedin_id)
+    )
 
+    # Location: Forager persons use osm_locations (same as orgs), not flat city/state/country
     location = person.get("location") or {}
+    osm = location.get("osm_locations") or []
+    city = next((o["name"].split(",")[0] for o in osm if o.get("place_type") == "city"), None)
+    state = next((o["name"] for o in osm if o.get("place_type") == "state"), None)
+    country = next((o["name"] for o in osm if o.get("place_type") == "country"), None)
+    # Fall back to flat fields if osm_locations absent
+    city = city or location.get("city") or person.get("city")
+    state = state or location.get("state") or person.get("state")
+    country = country or location.get("country") or person.get("country")
+
     current_role = _get_current_role(person)
 
     enriched = {
@@ -194,14 +214,14 @@ def enrich_person(person: dict, fetch_email: bool = True, fetch_phone: bool = Tr
         "first_name": person.get("first_name"),
         "last_name": person.get("last_name"),
         "full_name": person.get("full_name") or person.get("name"),
-        "linkedin_url": person.get("linkedin_url") or _build_linkedin_url(linkedin_id),
+        "linkedin_url": linkedin_url,
         "job_title": current_role.get("title") if current_role else person.get("headline"),
         "company_name": _nested(current_role, "organization", "name") if current_role else None,
         "company_domain": _nested(current_role, "organization", "domain") if current_role else None,
         "company_linkedin_url": _nested(current_role, "organization", "linkedin_url") if current_role else None,
-        "city": location.get("city") or person.get("city"),
-        "state": location.get("state") or person.get("state"),
-        "country": location.get("country") or person.get("country"),
+        "city": city,
+        "state": state,
+        "country": country,
         "description": person.get("description") or person.get("summary"),
         "about": person.get("about"),
         "email": None,
@@ -245,14 +265,32 @@ def _get_current_role(person: dict) -> Optional[dict]:
 
 
 def _extract_first_contact(data) -> Optional[str]:
-    """Handle both list and dict shapes from Forager contact lookup endpoints."""
+    """Handle Forager contact lookup responses.
+
+    Work emails / personal emails return a list of objects:
+      [{"email": "...", "email_type": "...", "validation_status": "valid"}, ...]
+    Phone numbers return a similar list of objects.
+    """
     if isinstance(data, list):
-        return data[0] if data else None
+        if not data:
+            return None
+        first = data[0]
+        if isinstance(first, str):
+            return first
+        if isinstance(first, dict):
+            return (
+                first.get("email")
+                or first.get("phone_number")
+                or first.get("phone")
+                or first.get("personal_email")
+                or first.get("work_email")
+            )
+        return None
     if isinstance(data, dict):
         for key in ("work_emails", "personal_emails", "phone_numbers", "emails", "phones"):
             val = data.get(key)
             if isinstance(val, list) and val:
-                return val[0]
+                return _extract_first_contact(val)
         for key in ("work_email", "personal_email", "phone_number", "email", "phone"):
             if data.get(key):
                 return data[key]
