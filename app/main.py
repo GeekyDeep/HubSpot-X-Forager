@@ -121,6 +121,7 @@ def enrich_people(req: EnrichPeopleRequest):
 
     people_raw = forager.search_people_at_org(
         org_id=org_id,
+        domain=req.company_domain,
         job_title_filter=req.job_title_filter,
         limit=req.limit,
     )
@@ -178,6 +179,7 @@ def demo_openai(
     # 2. Find people at OpenAI
     people_raw = forager.search_people_at_org(
         org_id=enriched_org["forager_id"],
+        domain="openai.com",
         job_title_filter=job_title_filter,
         limit=limit,
     )

@@ -45,6 +45,7 @@ def search_organization(domain: str = None, name: str = None, linkedin_id: str =
 
 def search_people_at_org(
     org_id: int,
+    domain: str = None,
     job_title_filter: Optional[str] = None,
     limit: int = 5,
 ) -> list[dict]:
@@ -52,8 +53,10 @@ def search_people_at_org(
     payload = {
         "page": 1,
         "role_is_current": True,
-        "organization_ids": [org_id],
+        "organizations": [org_id],
     }
+    if domain:
+        payload["organization_domains"] = [domain]
     if job_title_filter:
         payload["role_title"] = job_title_filter
 
