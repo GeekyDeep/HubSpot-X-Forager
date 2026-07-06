@@ -24,10 +24,12 @@ def search_organization(domain: str = None, name: str = None, linkedin_id: str =
     """Search for an organization by domain or name. Returns the best match.
     linkedin_id is used for post-hoc scoring only (Forager ignores it as a search filter).
     """
+    # Send only domain to Forager — adding name changes result set unpredictably.
+    # name is used for post-hoc scoring in _best_org_match only.
     payload = {"page": 1}
     if domain:
         payload["domains"] = [domain]
-    if name:
+    elif name:
         payload["name"] = name
 
     url = f"{BASE_URL}/{_account_id()}/datastorage/organization_search/"
