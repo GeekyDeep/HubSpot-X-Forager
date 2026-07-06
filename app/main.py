@@ -66,6 +66,19 @@ def debug_forager(domain: str = None, name: str = None, linkedin_id: str = None)
     return {"status": resp.status_code, "body": resp.json() if resp.status_code == 200 else resp.text}
 
 
+@app.get("/debug/people")
+def debug_people(org_id: int, job_title: str = None):
+    """Raw Forager person role search — returns full API response for debugging."""
+    import httpx as _httpx, os as _os
+    payload = {"page": 1, "role_is_current": True, "organization_ids": [org_id]}
+    if job_title:
+        payload["role_title"] = job_title
+    url = f"https://api-v2.forager.ai/api/{_os.environ['FORAGER_ACCOUNT_ID']}/datastorage/person_role_search/"
+    headers = {"Content-Type": "application/json", "X-API-KEY": _os.environ["FORAGER_API_KEY"]}
+    resp = _httpx.post(url, json=payload, headers=headers, timeout=30)
+    return {"status": resp.status_code, "body": resp.json() if resp.status_code == 200 else resp.text}
+
+
 # ── Manual enrichment endpoints ────────────────────────────────────────────────
 
 @app.post("/enrich/company")
