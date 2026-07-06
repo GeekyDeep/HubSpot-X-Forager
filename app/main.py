@@ -29,6 +29,7 @@ app = FastAPI(title="Forager × HubSpot Enrichment", version="1.0.0")
 class EnrichCompanyRequest(BaseModel):
     domain: Optional[str] = None
     name: Optional[str] = None
+    linkedin_url: Optional[str] = None
     push_to_hubspot: bool = True
 
 
@@ -86,11 +87,12 @@ def enrich_company(req: EnrichCompanyRequest):
     """
     Enrich a single company by domain or name and (optionally) push to HubSpot.
     """
-    if not req.domain and not req.name:
-        raise HTTPException(400, "Provide at least one of: domain, name")
+    if not req.domain and not req.name and not req.linkedin_url:
+        raise HTTPException(400, "Provide at least one of: domain, name, linkedin_url")
 
-    log.info("Enriching company domain=%s name=%s", req.domain, req.name)
-    enriched = forager.enrich_company(domain=req.domain, name=req.name)
+    linkedin_id = forager.extract_linkedin_company_slug(req.linkedin_url) if req.linkedin_url else None
+    log.info("Enriching company domain=%s name=%s linkedin_id=%s", req.domain, req.name, linkedin_id)
+    enriched = forager.enrich_company(domain=req.domain, name=req.name, linkedin_id=linkedin_id)
     if not enriched:
         raise HTTPException(404, "Company not found in Forager")
 

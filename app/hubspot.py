@@ -31,12 +31,15 @@ def _company_props(enriched: dict) -> dict:
         "name": enriched.get("name"),
         "domain": enriched.get("domain"),
         "description": enriched.get("description"),
-        "numberofemployees": enriched.get("headcount"),   # HubSpot expects integer
+        "numberofemployees": enriched.get("headcount"),
+        "annualrevenue": enriched.get("revenue"),
+        "industry": enriched.get("industry"),
         "city": enriched.get("city"),
         "state": enriched.get("state"),
         "country": enriched.get("country"),
         "phone": enriched.get("phone"),
         "website": enriched.get("website") or enriched.get("domain"),
+        "linkedin_company_page": enriched.get("linkedin_url"),
     }.items() if v is not None}
 
 

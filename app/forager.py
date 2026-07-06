@@ -248,6 +248,18 @@ def _nested(d: dict, *keys, default=None):
     return d if d else default
 
 
+def extract_linkedin_company_slug(url: str) -> Optional[str]:
+    """Extract the company slug from a LinkedIn company URL or return the slug as-is."""
+    if not url:
+        return None
+    if "linkedin.com/company/" in url:
+        slug = url.split("linkedin.com/company/")[-1].strip("/").split("/")[0].split("?")[0]
+        return slug or None
+    if "/" not in url:
+        return url  # already a bare slug
+    return None
+
+
 def _build_linkedin_url(identifier: str) -> Optional[str]:
     if not identifier:
         return None
