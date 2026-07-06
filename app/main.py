@@ -70,7 +70,7 @@ def debug_forager(domain: str = None, name: str = None, linkedin_id: str = None)
 def debug_people(org_id: int, job_title: str = None):
     """Raw Forager person role search — returns full API response for debugging."""
     import httpx as _httpx, os as _os
-    payload = {"page": 1, "role_is_current": True, "organization_ids": [org_id]}
+    payload = {"page": 1, "role_is_current": True, "organizations": [org_id]}
     if job_title:
         payload["role_title"] = job_title
     url = f"https://api-v2.forager.ai/api/{_os.environ['FORAGER_ACCOUNT_ID']}/datastorage/person_role_search/"

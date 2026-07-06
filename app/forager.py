@@ -69,7 +69,20 @@ def search_people_at_org(
 
     results = data.get("search_results") or data.get("results") or data.get("data") or []
     for item in results[:limit]:
-        person = item.get("person") or item
+        person = item.get("person")
+        if not person:
+            continue
+        org = item.get("organization") or {}
+        # Inject current role so enrich_person/_get_current_role can find it
+        person = {
+            **person,
+            "roles": [{
+                "title": item.get("role_title"),
+                "is_current": True,
+                "end_date": None,
+                "organization": org,
+            }],
+        }
         people.append(person)
     return people
 
