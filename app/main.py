@@ -142,6 +142,8 @@ def demo_openai(
     background_tasks: BackgroundTasks,
     job_title_filter: Optional[str] = None,
     limit: int = 5,
+    fetch_email: bool = True,
+    fetch_phone: bool = False,
 ):
     """
     Demo endpoint: enriches the OpenAI company plus up to `limit` employees.
@@ -171,7 +173,7 @@ def demo_openai(
     # 3. Enrich each person and push to HubSpot
     people_results = []
     for person in people_raw:
-        enriched = forager.enrich_person(person, fetch_email=True, fetch_phone=True)
+        enriched = forager.enrich_person(person, fetch_email=fetch_email, fetch_phone=fetch_phone)
         hs_contact = hubspot.upsert_contact(enriched, company_id=company_hs_id)
         log.info(
             "Contact: %s %s | email=%s | phone=%s | hs_action=%s",
