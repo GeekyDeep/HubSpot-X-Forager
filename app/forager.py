@@ -326,9 +326,14 @@ def _best_org_match(results: list, domain: str = None, name: str = None, linkedi
             s += 80
         if name and org_name == name.lower():
             s += 60
-        # Prefer orgs with more employees (larger, more likely to be the main entity)
+        # Domain rank: lower number = more authoritative site (like Alexa rank).
+        # Heavily favour ranked domains; penalise null-rank GPT plugins / subdomains.
+        rank = org.get("domain_rank")
+        if rank and rank > 0:
+            s += max(0, 60 - rank // 100)   # rank 242 → +57, rank 5000 → +10
+        # Employee count as a tiebreaker
         employees = org.get("employees_amount") or 0
-        s += min(employees // 1000, 20)
+        s += min(employees // 1000, 10)
         return s
 
     return max(results, key=score)
