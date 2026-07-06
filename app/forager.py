@@ -21,13 +21,13 @@ def _account_id() -> str:
 
 
 def search_organization(domain: str = None, name: str = None, linkedin_id: str = None) -> Optional[dict]:
-    """Search for an organization by domain, name, or LinkedIn identifier. Returns the best match."""
+    """Search for an organization by domain or name. Returns the best match.
+    linkedin_id is used for post-hoc scoring only (Forager ignores it as a search filter).
+    """
     payload = {"page": 1}
-    if linkedin_id:
-        payload["linkedin_identifiers"] = [linkedin_id]
-    elif domain:
+    if domain:
         payload["domains"] = [domain]
-    if name and not linkedin_id:
+    if name:
         payload["name"] = name
 
     url = f"{BASE_URL}/{_account_id()}/datastorage/organization_search/"

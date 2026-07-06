@@ -152,8 +152,8 @@ def demo_openai(
     """
     log.info("=== DEMO: Enriching OpenAI + %d people ===", limit)
 
-    # 1. Enrich company — use LinkedIn identifier for exact match
-    enriched_org = forager.enrich_company(linkedin_id="openai", name="OpenAI")
+    # 1. Enrich company — domain search is the most reliable Forager lookup
+    enriched_org = forager.enrich_company(domain="openai.com", name="OpenAI")
     if not enriched_org:
         raise HTTPException(404, "OpenAI not found in Forager")
     log.info("Company enriched: %s", enriched_org.get("name"))
