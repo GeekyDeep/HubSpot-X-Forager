@@ -520,6 +520,7 @@ const D = {
   page: 0,
   totalPages: 0,
   total: 0,
+  sessionCreated: 0,
   validProfiles: [],
   filteredProfiles: [],
   loading: false,
@@ -739,18 +740,18 @@ function showPushSummary(data) {
     document.getElementById('d-push-summary').innerHTML = '';
     return;
   }
+  D.sessionCreated += created;
   const parts = [];
   if (existing > 0) parts.push(`<span class="badge badge-blue">${existing} already in HubSpot</span>`);
-  if (created > 0)  parts.push(`<span class="badge badge-green">+${created} new contacts added</span>`);
   document.getElementById('d-push-summary').innerHTML = `
     <div class="summary-bar" style="margin-bottom:8px">
-      <span>Pushed <strong>${results.length}</strong> contacts</span>
+      <span>Session total: <strong>+${D.sessionCreated}</strong> new contacts added</span>
       ${parts.join('')}
     </div>`;
 }
 
 function discoverReset() {
-  D.foragerOrgId = null; D.page = 0; D.totalPages = 0; D.validProfiles = []; D.filteredProfiles = [];
+  D.foragerOrgId = null; D.page = 0; D.totalPages = 0; D.validProfiles = []; D.filteredProfiles = []; D.sessionCreated = 0;
   filteredSelected.clear();
   document.getElementById('discover-results').classList.add('hidden');
   document.getElementById('d-push-summary').innerHTML = '';
