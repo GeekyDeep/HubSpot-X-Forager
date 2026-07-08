@@ -447,6 +447,10 @@ def _enrich_hubspot_company(company_id: str) -> None:
 
         enriched = forager.enrich_company(domain=domain, name=name, linkedin_id=linkedin_id)
         if enriched:
+            # Preserve the domain the user entered — Forager sometimes stores a PR/subdomain
+            # (e.g. aboutamazon.com) instead of the actual product domain (amazon.com)
+            if domain:
+                enriched["domain"] = domain
             hubspot.upsert_company(enriched, existing_id=company_id)
             log.info("Webhook enriched company %s", company_id)
 
