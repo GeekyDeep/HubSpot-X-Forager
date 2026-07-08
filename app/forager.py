@@ -114,6 +114,7 @@ def search_people_page(
                 "linkedin_url": li_info.get("public_profile_url"),
                 "role_title": item.get("role_title"),
                 "reason": reason,
+                "_raw": _build_person(item),
             })
 
     return {

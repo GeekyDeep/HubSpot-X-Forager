@@ -231,11 +231,14 @@ def _update_company(company_id: str, props: dict) -> dict:
 def upsert_contact(enriched: dict, company_id: Optional[str] = None) -> dict:
     """Create or update a HubSpot contact from Forager enrichment data."""
     _ensure_custom_contact_props()
+    forager_id = str(enriched["forager_id"]) if enriched.get("forager_id") else None
     email = enriched.get("email")
     linkedin = enriched.get("linkedin_url")
 
     existing_id = None
-    if email:
+    if forager_id:
+        existing_id = _find_contact_by_forager_id(forager_id)
+    if not existing_id and email:
         existing_id = _find_contact_by_email(email)
     if not existing_id and linkedin:
         existing_id = _find_contact_by_linkedin(linkedin)
@@ -271,6 +274,22 @@ def _contact_props(enriched: dict) -> dict:
         "role_start_date":      enriched.get("role_start_date"),
         "forager_person_id":    str(enriched["forager_id"]) if enriched.get("forager_id") else None,
     }.items() if v is not None}
+
+
+def _find_contact_by_forager_id(forager_id: str) -> Optional[str]:
+    url = f"{BASE_URL}/crm/v3/objects/contacts/search"
+    payload = {
+        "filterGroups": [{"filters": [{"propertyName": "forager_person_id", "operator": "EQ", "value": forager_id}]}],
+        "properties": ["id"],
+        "limit": 1,
+    }
+    with httpx.Client(timeout=15) as client:
+        resp = client.post(url, json=payload, headers=_headers())
+        if resp.status_code == 200:
+            results = resp.json().get("results", [])
+            if results:
+                return results[0]["id"]
+    return None
 
 
 def _find_contact_by_email(email: str) -> Optional[str]:

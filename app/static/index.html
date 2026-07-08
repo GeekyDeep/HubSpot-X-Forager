@@ -395,9 +395,14 @@
       <div class="collapsible-body" id="d-filtered-body">
         <div class="table-wrap" style="margin-top:8px">
           <table>
-            <thead><tr><th>Name</th><th>Title</th><th>Reason</th></tr></thead>
+            <thead><tr><th class="check"></th><th>Name</th><th>Title</th><th>LinkedIn</th><th>Reason</th></tr></thead>
             <tbody id="d-filtered-tbody"></tbody>
           </table>
+        </div>
+        <div style="margin-top:10px;display:flex;justify-content:flex-end">
+          <button class="btn btn-sm btn-secondary" id="d-filtered-push-btn" onclick="pushFilteredSelected()" disabled>
+            Push Selected to HubSpot (0)
+          </button>
         </div>
       </div>
     </div>
@@ -516,8 +521,10 @@ const D = {
   totalPages: 0,
   total: 0,
   validProfiles: [],
+  filteredProfiles: [],
   loading: false,
 };
+const filteredSelected = new Set();
 
 async function discoverFindCompany() {
   const domain = document.getElementById('d-domain').value.trim();
@@ -610,17 +617,58 @@ function renderValidTable(profiles) {
 }
 
 function renderFilteredTable(profiles) {
+  D.filteredProfiles = profiles;
+  filteredSelected.clear();
+  updateFilteredPushBtn();
   const tbody = document.getElementById('d-filtered-tbody');
   document.getElementById('d-filtered-count').textContent = profiles.length;
   if (!profiles.length) {
-    tbody.innerHTML = '<tr><td colspan="3" class="empty">None filtered out.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="empty">None filtered out.</td></tr>';
     return;
   }
-  tbody.innerHTML = profiles.map(p => `<tr>
-    <td>${esc(p.name || '')}</td>
-    <td>${esc(p.role_title || '')}</td>
-    <td style="color:var(--red)">${esc(p.reason || '')}</td>
-  </tr>`).join('');
+  tbody.innerHTML = profiles.map((p, i) => {
+    const liUrl = p.linkedin_url || null;
+    const liSlug = liUrl ? liUrl.replace(/\/$/, '').split('/in/').pop() : null;
+    return `<tr>
+      <td class="check"><input type="checkbox" onchange="toggleFilteredRow(${i}, this.checked)"></td>
+      <td><strong>${esc(p.name || '')}</strong></td>
+      <td>${esc(p.role_title || '')}</td>
+      <td>${liUrl ? `<a href="${esc(liUrl)}" target="_blank">${esc(liSlug || 'LinkedIn')}</a>` : '—'}</td>
+      <td style="color:var(--red)">${esc(p.reason || '')}</td>
+    </tr>`;
+  }).join('');
+}
+
+function toggleFilteredRow(idx, checked) {
+  if (checked) filteredSelected.add(idx);
+  else filteredSelected.delete(idx);
+  updateFilteredPushBtn();
+}
+
+function updateFilteredPushBtn() {
+  const btn = document.getElementById('d-filtered-push-btn');
+  if (!btn) return;
+  btn.disabled = filteredSelected.size === 0;
+  btn.textContent = `Push Selected to HubSpot (${filteredSelected.size})`;
+}
+
+async function pushFilteredSelected() {
+  const contacts = [...filteredSelected].map(i => D.filteredProfiles[i]._raw).filter(Boolean);
+  if (!contacts.length) return;
+  const btn = document.getElementById('d-filtered-push-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Pushing…';
+  try {
+    const data = await api('POST', '/push/contacts', { contacts });
+    const created = (data.results || []).filter(r => r.action === 'created').length;
+    const updated = (data.results || []).filter(r => r.action === 'updated').length;
+    showAlert('d-push-alert', `Filtered push: ${created} created, ${updated} updated in HubSpot.`, 'success');
+    filteredSelected.clear();
+  } catch (e) {
+    showAlert('d-push-alert', e.message, 'error');
+  } finally {
+    updateFilteredPushBtn();
+  }
 }
 
 function locationStr(person) {
@@ -699,7 +747,8 @@ function showPushSummary(data) {
 }
 
 function discoverReset() {
-  D.foragerOrgId = null; D.page = 0; D.totalPages = 0; D.validProfiles = [];
+  D.foragerOrgId = null; D.page = 0; D.totalPages = 0; D.validProfiles = []; D.filteredProfiles = [];
+  filteredSelected.clear();
   document.getElementById('discover-results').classList.add('hidden');
   document.getElementById('d-push-summary').innerHTML = '';
   hideAlert('d-push-alert');
