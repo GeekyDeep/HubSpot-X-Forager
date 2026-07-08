@@ -205,55 +205,41 @@ def lookup_person_detail(person_id: int = None, linkedin_identifier: str = None)
         return resp.json()
 
 
+def _contact_lookup(endpoint: str, payload: dict, label: str) -> Optional[str]:
+    url = f"{BASE_URL}/{_account_id()}/datastorage/person_contacts_lookup/{endpoint}/"
+    with httpx.Client(timeout=30) as client:
+        resp = client.post(url, json=payload, headers=_headers())
+    if resp.status_code == 200:
+        return _extract_first_contact(resp.json())
+    log.warning("contact_lookup %s payload=%s → %s %s", label, payload, resp.status_code, resp.text[:300])
+    return None
+
+
 def get_work_email(person_id: int = None, linkedin_id: str = None) -> Optional[str]:
-    """Look up a person's work email address."""
     payload = {}
     if person_id:
         payload["person_id"] = person_id
     if linkedin_id:
         payload["linkedin_public_identifier"] = linkedin_id
-
-    url = f"{BASE_URL}/{_account_id()}/datastorage/person_contacts_lookup/work_emails/"
-    with httpx.Client(timeout=30) as client:
-        resp = client.post(url, json=payload, headers=_headers())
-        if resp.status_code == 200:
-            data = resp.json()
-            return _extract_first_contact(data)
-    return None
+    return _contact_lookup("work_emails", payload, "work_emails")
 
 
 def get_personal_email(person_id: int = None, linkedin_id: str = None) -> Optional[str]:
-    """Look up a person's personal email address."""
     payload = {}
     if person_id:
         payload["person_id"] = person_id
     if linkedin_id:
         payload["linkedin_public_identifier"] = linkedin_id
-
-    url = f"{BASE_URL}/{_account_id()}/datastorage/person_contacts_lookup/personal_emails/"
-    with httpx.Client(timeout=30) as client:
-        resp = client.post(url, json=payload, headers=_headers())
-        if resp.status_code == 200:
-            data = resp.json()
-            return _extract_first_contact(data)
-    return None
+    return _contact_lookup("personal_emails", payload, "personal_emails")
 
 
 def get_phone(person_id: int = None, linkedin_id: str = None) -> Optional[str]:
-    """Look up a person's phone number."""
     payload = {}
     if person_id:
         payload["person_id"] = person_id
     if linkedin_id:
         payload["linkedin_public_identifier"] = linkedin_id
-
-    url = f"{BASE_URL}/{_account_id()}/datastorage/person_contacts_lookup/phone_numbers/"
-    with httpx.Client(timeout=30) as client:
-        resp = client.post(url, json=payload, headers=_headers())
-        if resp.status_code == 200:
-            data = resp.json()
-            return _extract_first_contact(data)
-    return None
+    return _contact_lookup("phone_numbers", payload, "phone_numbers")
 
 
 def enrich_company(domain: str = None, name: str = None, linkedin_id: str = None) -> Optional[dict]:
