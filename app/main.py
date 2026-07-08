@@ -437,14 +437,15 @@ def _enrich_hubspot_company(company_id: str) -> None:
     try:
         import httpx as _httpx
         url = f"https://api.hubapi.com/crm/v3/objects/companies/{company_id}"
-        params = {"properties": "name,domain"}
+        params = {"properties": "name,domain,linkedin_company_page"}
         resp = _httpx.get(url, params=params, headers=hubspot._headers(), timeout=15)
         resp.raise_for_status()
         props = resp.json().get("properties", {})
-        domain = props.get("domain")
+        domain = (props.get("domain") or "").lower() or None
         name = props.get("name")
+        linkedin_id = forager.extract_linkedin_company_slug(props.get("linkedin_company_page"))
 
-        enriched = forager.enrich_company(domain=domain, name=name)
+        enriched = forager.enrich_company(domain=domain, name=name, linkedin_id=linkedin_id)
         if enriched:
             hubspot.upsert_company(enriched)
             log.info("Webhook enriched company %s", company_id)
