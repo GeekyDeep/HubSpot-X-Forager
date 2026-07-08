@@ -336,7 +336,7 @@
 
   <!-- Step 1: Find company -->
   <div class="card" id="discover-step1">
-    <div class="card-title">Find Company in Forager</div>
+    <div class="card-title">Find Contacts of Company</div>
     <div class="form-row">
       <div class="field">
         <label>Company Domain</label>
@@ -350,7 +350,7 @@
         <label>Job Title Filter</label>
         <input id="d-filter" type="text" placeholder="e.g. Software Engineer">
       </div>
-      <button class="btn btn-primary" onclick="discoverFindCompany()" id="d-find-btn">Find Company</button>
+      <button class="btn btn-primary" onclick="discoverFindCompany()" id="d-find-btn">Start Searching</button>
     </div>
     <div id="d-find-alert" class="alert" style="margin-top:12px;margin-bottom:0"></div>
   </div>
@@ -550,7 +550,7 @@ async function discoverFindCompany() {
     showAlert('d-find-alert', e.message, 'error');
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Find Company';
+    btn.textContent = 'Start Searching';
   }
 }
 
@@ -732,17 +732,20 @@ async function discoverPushStop() {
 }
 
 function showPushSummary(data) {
-  const created = (data.results || []).filter(r => r.action === 'created').length;
-  const updated = (data.results || []).filter(r => r.action === 'updated').length;
-  if (!data.pushed) {
+  const results = data.results || [];
+  const created = results.filter(r => r.action === 'created').length;
+  const existing = results.filter(r => r.action === 'updated').length;
+  if (!results.length) {
     document.getElementById('d-push-summary').innerHTML = '';
     return;
   }
+  const parts = [];
+  if (existing > 0) parts.push(`<span class="badge badge-blue">${existing} already in HubSpot</span>`);
+  if (created > 0)  parts.push(`<span class="badge badge-green">+${created} new contacts added</span>`);
   document.getElementById('d-push-summary').innerHTML = `
     <div class="summary-bar" style="margin-bottom:8px">
-      <span>Pushed <strong>${data.pushed}</strong> contacts to HubSpot</span>
-      <span class="badge badge-green">+${created} created</span>
-      <span class="badge badge-blue">${updated} updated</span>
+      <span>Pushed <strong>${results.length}</strong> contacts</span>
+      ${parts.join('')}
     </div>`;
 }
 
