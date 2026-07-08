@@ -400,7 +400,7 @@
           </table>
         </div>
         <div style="margin-top:10px;display:flex;justify-content:flex-end">
-          <button class="btn btn-sm btn-secondary" id="d-filtered-push-btn" onclick="pushFilteredSelected()" disabled>
+          <button class="btn btn-sm btn-primary" id="d-filtered-push-btn" onclick="pushFilteredSelected()" disabled>
             Push Selected to HubSpot (0)
           </button>
         </div>
@@ -694,11 +694,11 @@ function setPageActions(state) {
   }
   // state === 'ready'
   if (isLast) {
-    bar.innerHTML = `<button class="btn btn-primary" onclick="discoverPushStop()">Push page &amp; finish</button>`;
+    bar.innerHTML = `<button class="btn btn-danger" onclick="discoverPushStop()">Push Contacts &amp; Stop</button>`;
   } else {
     bar.innerHTML = `
-      <button class="btn btn-secondary" onclick="discoverPushStop()">Push page &amp; stop</button>
-      <button class="btn btn-primary" onclick="discoverPushContinue()">Push page &amp; continue &#x2192;</button>`;
+      <button class="btn btn-danger" onclick="discoverPushStop()">Push Contacts &amp; Stop</button>
+      <button class="btn btn-primary" onclick="discoverPushContinue()">Push Contacts &amp; Next Page &#x2192;</button>`;
   }
 }
 
