@@ -83,6 +83,8 @@ class SearchCompanyRequest(BaseModel):
 
 class EnrichEmailPhoneRequest(BaseModel):
     contact_ids: list[str]
+    fetch_email: bool = True
+    fetch_phone: bool = True
 
 
 class DiscoverPeopleRequest(BaseModel):
@@ -255,8 +257,8 @@ def enrich_email_phone(req: EnrichEmailPhoneRequest):
         except (ValueError, TypeError):
             results.append({"hubspot_id": cid, "error": f"invalid forager_person_id: {person_id_str!r}"})
             continue
-        email = forager.get_work_email(person_id=person_id)
-        phone = forager.get_phone(person_id=person_id)
+        email = forager.get_work_email(person_id=person_id) if req.fetch_email else None
+        phone = forager.get_phone(person_id=person_id) if req.fetch_phone else None
         update = {k: v for k, v in {"email": email, "phone": phone}.items() if v}
         if update:
             hubspot._update_contact(cid, update)

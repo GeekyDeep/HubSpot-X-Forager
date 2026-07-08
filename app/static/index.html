@@ -440,9 +440,9 @@
         <div class="toolbar-right">
           <button class="btn btn-sm btn-secondary" onclick="epSelectAll()">Select All</button>
           <button class="btn btn-sm btn-secondary" onclick="epClearAll()">Clear All</button>
-          <button class="btn btn-sm btn-primary" id="ep-enrich-btn" onclick="epEnrichSelected()" disabled>
-            Enrich Selected (0)
-          </button>
+          <button class="btn btn-sm btn-primary" id="ep-enrich-email-btn" onclick="epEnrichSelected('email')" disabled>Enrich Email (0)</button>
+          <button class="btn btn-sm btn-primary" id="ep-enrich-phone-btn" onclick="epEnrichSelected('phone')" disabled>Enrich Phone (0)</button>
+          <button class="btn btn-sm btn-success" id="ep-enrich-both-btn" onclick="epEnrichSelected('both')" disabled>Enrich Email &amp; Phone (0)</button>
         </div>
       </div>
       <div id="ep-enrich-alert" class="alert"></div>
@@ -889,30 +889,37 @@ function epClearAll() {
 }
 
 function updateEnrichBtn() {
-  const btn = document.getElementById('ep-enrich-btn');
   const n = epSelected.size;
-  btn.disabled = n === 0;
-  btn.textContent = `Enrich Selected (${n})`;
+  document.getElementById('ep-enrich-email-btn').disabled = n === 0;
+  document.getElementById('ep-enrich-phone-btn').disabled = n === 0;
+  document.getElementById('ep-enrich-both-btn').disabled = n === 0;
+  document.getElementById('ep-enrich-email-btn').textContent = `Enrich Email (${n})`;
+  document.getElementById('ep-enrich-phone-btn').textContent = `Enrich Phone (${n})`;
+  document.getElementById('ep-enrich-both-btn').textContent = `Enrich Email & Phone (${n})`;
 }
 
-async function epEnrichSelected() {
+async function epEnrichSelected(mode) {
   if (!epSelected.size) return;
-  const btn = document.getElementById('ep-enrich-btn');
-  btn.disabled = true;
-  btn.innerHTML = `<span class="spinner"></span> Enriching ${epSelected.size}…`;
+  const fetchEmail = mode === 'email' || mode === 'both';
+  const fetchPhone = mode === 'phone' || mode === 'both';
+
+  const btnIds = ['ep-enrich-email-btn', 'ep-enrich-phone-btn', 'ep-enrich-both-btn'];
+  btnIds.forEach(id => { document.getElementById(id).disabled = true; });
+  const activeId = mode === 'email' ? 'ep-enrich-email-btn' : mode === 'phone' ? 'ep-enrich-phone-btn' : 'ep-enrich-both-btn';
+  document.getElementById(activeId).innerHTML = `<span class="spinner"></span> Enriching ${epSelected.size}…`;
   hideAlert('ep-enrich-alert');
 
-  // Mark selected rows as loading
   epContacts.forEach((c, i) => {
-    if (epSelected.has(c.hubspot_id)) {
-      document.getElementById(`ep-email-${i}`).innerHTML = '<span class="spinner"></span>';
-      document.getElementById(`ep-phone-${i}`).innerHTML = '<span class="spinner"></span>';
-    }
+    if (!epSelected.has(c.hubspot_id)) return;
+    if (fetchEmail) document.getElementById(`ep-email-${i}`).innerHTML = '<span class="spinner"></span>';
+    if (fetchPhone) document.getElementById(`ep-phone-${i}`).innerHTML = '<span class="spinner"></span>';
   });
 
   try {
     const data = await api('POST', '/enrich/contacts/email-phone', {
       contact_ids: [...epSelected],
+      fetch_email: fetchEmail,
+      fetch_phone: fetchPhone,
     });
 
     const resultMap = {};
@@ -922,41 +929,31 @@ async function epEnrichSelected() {
     epContacts.forEach((c, i) => {
       if (!epSelected.has(c.hubspot_id)) return;
       const r = resultMap[c.hubspot_id] || {};
-      const emailEl = document.getElementById(`ep-email-${i}`);
-      const phoneEl = document.getElementById(`ep-phone-${i}`);
-
-      if (r.email) {
-        emailEl.textContent = r.email;
-        emailEl.className = 'cell-found';
-        found++;
-      } else {
-        emailEl.textContent = '—';
-        emailEl.className = 'cell-not-found';
+      if (fetchEmail) {
+        const el = document.getElementById(`ep-email-${i}`);
+        if (r.email) { el.textContent = r.email; el.className = 'cell-found'; found++; }
+        else { el.textContent = '—'; el.className = 'cell-not-found'; }
       }
-      if (r.phone) {
-        phoneEl.textContent = r.phone;
-        phoneEl.className = 'cell-found';
-        found++;
-      } else {
-        phoneEl.textContent = '—';
-        phoneEl.className = 'cell-not-found';
+      if (fetchPhone) {
+        const el = document.getElementById(`ep-phone-${i}`);
+        if (r.phone) { el.textContent = r.phone; el.className = 'cell-found'; found++; }
+        else { el.textContent = '—'; el.className = 'cell-not-found'; }
       }
     });
 
+    const what = fetchEmail && fetchPhone ? 'email or phone' : fetchEmail ? 'email' : 'phone';
     const msg = found > 0
       ? `Enrichment complete — ${found} value${found !== 1 ? 's' : ''} found across ${epSelected.size} contact${epSelected.size !== 1 ? 's' : ''}.`
-      : `Enrichment complete — no email or phone data found for the selected contacts.`;
+      : `Enrichment complete — no ${what} data found for the selected contacts.`;
     showAlert('ep-enrich-alert', msg, found > 0 ? 'success' : 'info');
   } catch (e) {
     showAlert('ep-enrich-alert', e.message, 'error');
     epContacts.forEach((c, i) => {
-      if (epSelected.has(c.hubspot_id)) {
-        document.getElementById(`ep-email-${i}`).textContent = 'Error';
-        document.getElementById(`ep-phone-${i}`).textContent = 'Error';
-      }
+      if (!epSelected.has(c.hubspot_id)) return;
+      if (fetchEmail) document.getElementById(`ep-email-${i}`).textContent = 'Error';
+      if (fetchPhone) document.getElementById(`ep-phone-${i}`).textContent = 'Error';
     });
   } finally {
-    btn.disabled = false;
     updateEnrichBtn();
   }
 }
