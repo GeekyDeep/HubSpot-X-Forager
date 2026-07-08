@@ -1,0 +1,909 @@
+<!doctype html>
+<title>Forager × HubSpot</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f6f8;
+    --surface: #ffffff;
+    --surface2: #f0f2f5;
+    --border: #e2e5ea;
+    --text: #111827;
+    --text2: #6b7280;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --green: #16a34a;
+    --green-bg: #f0fdf4;
+    --red: #dc2626;
+    --red-bg: #fef2f2;
+    --yellow: #ca8a04;
+    --yellow-bg: #fefce8;
+    --radius: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #232636;
+      --border: #2e3347;
+      --text: #f1f3f9;
+      --text2: #8b93a7;
+      --accent: #3b82f6;
+      --accent-hover: #60a5fa;
+      --green: #4ade80;
+      --green-bg: #052e16;
+      --red: #f87171;
+      --red-bg: #2d0a0a;
+      --yellow: #fbbf24;
+      --yellow-bg: #2d1f00;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1117; --surface: #1a1d27; --surface2: #232636; --border: #2e3347;
+    --text: #f1f3f9; --text2: #8b93a7; --accent: #3b82f6; --accent-hover: #60a5fa;
+    --green: #4ade80; --green-bg: #052e16; --red: #f87171; --red-bg: #2d0a0a;
+    --yellow: #fbbf24; --yellow-bg: #2d1f00;
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface2: #f0f2f5; --border: #e2e5ea;
+    --text: #111827; --text2: #6b7280; --accent: #2563eb; --accent-hover: #1d4ed8;
+    --green: #16a34a; --green-bg: #f0fdf4; --red: #dc2626; --red-bg: #fef2f2;
+    --yellow: #ca8a04; --yellow-bg: #fefce8;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: var(--shadow);
+  }
+  .logo { font-weight: 700; font-size: 16px; letter-spacing: -.2px; }
+  .logo span { color: var(--accent); }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: none;
+  }
+  .tab-btn {
+    padding: 6px 16px;
+    border: none;
+    background: none;
+    color: var(--text2);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background .15s, color .15s;
+  }
+  .tab-btn:hover { background: var(--surface2); color: var(--text); }
+  .tab-btn.active { background: var(--accent); color: #fff; }
+
+  main { padding: 24px; max-width: 1100px; margin: 0 auto; }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow);
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 16px;
+    color: var(--text);
+  }
+
+  /* Form rows */
+  .form-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+  .field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 160px; }
+  .field label { font-size: 12px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: .4px; }
+  .field input {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 14px;
+    background: var(--surface2);
+    color: var(--text);
+    outline: none;
+    transition: border-color .15s;
+  }
+  .field input:focus { border-color: var(--accent); }
+
+  /* Buttons */
+  .btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background .15s, opacity .15s;
+    white-space: nowrap;
+  }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover:not(:disabled) { background: var(--border); }
+  .btn-danger { background: var(--red); color: #fff; }
+  .btn-success { background: var(--green); color: #fff; }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+  /* Badges */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 99px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .badge-blue { background: #dbeafe; color: #1e40af; }
+  .badge-green { background: var(--green-bg); color: var(--green); }
+  .badge-red { background: var(--red-bg); color: var(--red); }
+  .badge-gray { background: var(--surface2); color: var(--text2); }
+  @media (prefers-color-scheme: dark) {
+    .badge-blue { background: #1e3a5f; color: #93c5fd; }
+  }
+  :root[data-theme="dark"] .badge-blue { background: #1e3a5f; color: #93c5fd; }
+
+  /* Alert */
+  .alert {
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    margin-bottom: 12px;
+    display: none;
+  }
+  .alert.show { display: block; }
+  .alert-error { background: var(--red-bg); color: var(--red); border: 1px solid var(--red); }
+  .alert-success { background: var(--green-bg); color: var(--green); border: 1px solid var(--green); }
+  .alert-info { background: var(--yellow-bg); color: var(--yellow); border: 1px solid var(--yellow); }
+
+  /* Tables */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th {
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 2px solid var(--border);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    color: var(--text2);
+    white-space: nowrap;
+  }
+  td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+  td a { color: var(--accent); text-decoration: none; }
+  td a:hover { text-decoration: underline; }
+
+  /* Checkbox column */
+  td.check, th.check { width: 36px; padding-right: 0; }
+  input[type="checkbox"] { width: 15px; height: 15px; cursor: pointer; accent-color: var(--accent); }
+
+  /* Collapsible */
+  .collapsible-trigger {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text2);
+    padding: 6px 0;
+  }
+  .collapsible-trigger:hover { color: var(--text); }
+  .collapsible-icon { transition: transform .2s; display: inline-block; }
+  .collapsible-icon.open { transform: rotate(90deg); }
+  .collapsible-body { display: none; margin-top: 8px; }
+  .collapsible-body.open { display: block; }
+
+  /* Page controls */
+  .page-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .page-info { font-weight: 600; font-size: 14px; }
+  .page-actions { display: flex; gap: 8px; }
+
+  /* Summary bar */
+  .summary-bar {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border-radius: 6px;
+    font-size: 13px;
+    margin-bottom: 12px;
+  }
+  .summary-bar span { color: var(--text2); }
+  .summary-bar strong { color: var(--text); }
+
+  /* Loader */
+  .spinner {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .6s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Company finder (Tab 2) */
+  .company-finder { position: relative; flex: 1; min-width: 200px; }
+  .company-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,.12);
+    z-index: 20;
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
+  }
+  .company-dropdown.open { display: block; }
+  .dd-item {
+    padding: 9px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+  }
+  .dd-item:last-child { border-bottom: none; }
+  .dd-item:hover { background: var(--surface2); }
+  .dd-item .dd-name { font-weight: 500; }
+  .dd-item .dd-domain { font-size: 11px; color: var(--text2); }
+
+  /* Toolbar row */
+  .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+  .toolbar-right { margin-left: auto; display: flex; gap: 8px; }
+
+  /* Result cell */
+  .cell-pending { color: var(--text2); font-style: italic; }
+  .cell-found { color: var(--green); font-weight: 500; }
+  .cell-not-found { color: var(--text2); }
+
+  /* Empty state */
+  .empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text2);
+    font-size: 13px;
+  }
+
+  .hidden { display: none !important; }
+</style>
+
+<header>
+  <div class="logo">Forager <span>×</span> HubSpot</div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('discover')">Discover People</button>
+    <button class="tab-btn" onclick="switchTab('emailphone')">Email / Phone</button>
+  </div>
+</header>
+
+<main>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     TAB 1 — DISCOVER PEOPLE
+═══════════════════════════════════════════════════════════════════ -->
+<div id="tab-discover" class="tab-panel active">
+
+  <!-- Step 1: Find company -->
+  <div class="card" id="discover-step1">
+    <div class="card-title">Find Company in Forager</div>
+    <div class="form-row">
+      <div class="field">
+        <label>Company Domain</label>
+        <input id="d-domain" type="text" placeholder="openai.com">
+      </div>
+      <div class="field">
+        <label>Company Name</label>
+        <input id="d-name" type="text" placeholder="OpenAI">
+      </div>
+      <div class="field">
+        <label>Job Title Filter</label>
+        <input id="d-filter" type="text" placeholder="e.g. Software Engineer">
+      </div>
+      <button class="btn btn-primary" onclick="discoverFindCompany()" id="d-find-btn">Find Company</button>
+    </div>
+    <div id="d-find-alert" class="alert" style="margin-top:12px;margin-bottom:0"></div>
+  </div>
+
+  <!-- Step 2+: Results -->
+  <div id="discover-results" class="hidden">
+
+    <div class="card" style="padding:14px 20px">
+      <div id="d-page-bar" class="page-bar">
+        <div>
+          <div class="page-info" id="d-page-info"></div>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px" id="d-org-info"></div>
+        </div>
+        <div class="page-actions" id="d-page-actions"></div>
+      </div>
+      <div id="d-push-summary"></div>
+      <div id="d-push-alert" class="alert"></div>
+    </div>
+
+    <!-- Valid profiles -->
+    <div class="card" id="d-valid-card">
+      <div class="card-title">Valid Profiles</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th><th>Title</th><th>LinkedIn</th>
+              <th>Location</th><th>Start Date</th>
+            </tr>
+          </thead>
+          <tbody id="d-valid-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Filtered profiles -->
+    <div class="card" id="d-filtered-card">
+      <div class="collapsible-trigger" onclick="toggleCollapsible('d-filtered')">
+        <span class="collapsible-icon" id="d-filtered-icon">▶</span>
+        Filtered Out (<span id="d-filtered-count">0</span>)
+      </div>
+      <div class="collapsible-body" id="d-filtered-body">
+        <div class="table-wrap" style="margin-top:8px">
+          <table>
+            <thead><tr><th>Name</th><th>Title</th><th>Reason</th></tr></thead>
+            <tbody id="d-filtered-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     TAB 2 — EMAIL / PHONE ENRICHMENT
+═══════════════════════════════════════════════════════════════════ -->
+<div id="tab-emailphone" class="tab-panel">
+
+  <div class="card">
+    <div class="card-title">Select Company</div>
+    <div class="form-row">
+      <div class="company-finder">
+        <div class="field" style="flex:1">
+          <label>Company Name</label>
+          <input id="ep-company-input" type="text" placeholder="Type to search HubSpot companies…"
+                 oninput="epSearchCompanies(this.value)" autocomplete="off">
+        </div>
+        <div class="company-dropdown" id="ep-company-dropdown"></div>
+      </div>
+      <div id="ep-selected-badge" class="hidden" style="align-self:flex-end;padding-bottom:2px"></div>
+    </div>
+    <div id="ep-find-alert" class="alert" style="margin-top:12px;margin-bottom:0"></div>
+  </div>
+
+  <div id="ep-contacts-section" class="hidden">
+    <div class="card">
+      <div class="toolbar">
+        <div class="page-info" id="ep-contact-count"></div>
+        <div class="toolbar-right">
+          <button class="btn btn-sm btn-secondary" onclick="epSelectAll()">Select All</button>
+          <button class="btn btn-sm btn-secondary" onclick="epClearAll()">Clear All</button>
+          <button class="btn btn-sm btn-primary" id="ep-enrich-btn" onclick="epEnrichSelected()" disabled>
+            Enrich Selected (0)
+          </button>
+        </div>
+      </div>
+      <div id="ep-enrich-alert" class="alert"></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="check"><input type="checkbox" id="ep-check-all" onchange="epToggleAll(this.checked)"></th>
+              <th>Name</th><th>Job Title</th><th>Email</th><th>Phone</th>
+            </tr>
+          </thead>
+          <tbody id="ep-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</main>
+
+<script>
+// ── Tab switching ────────────────────────────────────────────────────────────
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+function toggleCollapsible(id) {
+  const body = document.getElementById(id + '-body');
+  const icon = document.getElementById(id + '-icon');
+  body.classList.toggle('open');
+  icon.classList.toggle('open');
+}
+
+// ── Utility ──────────────────────────────────────────────────────────────────
+
+function showAlert(id, msg, type) {
+  const el = document.getElementById(id);
+  el.className = `alert alert-${type} show`;
+  el.innerHTML = msg;
+}
+function hideAlert(id) {
+  const el = document.getElementById(id);
+  el.className = 'alert';
+  el.textContent = '';
+}
+
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body !== undefined) opts.body = JSON.stringify(body);
+  const res = await fetch(path, opts);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || res.statusText);
+  }
+  return res.json();
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// TAB 1 — DISCOVER PEOPLE
+// ═══════════════════════════════════════════════════════════════════
+
+const D = {
+  foragerOrgId: null,
+  orgName: null,
+  jobFilter: null,
+  page: 0,
+  totalPages: 0,
+  total: 0,
+  validProfiles: [],
+  loading: false,
+};
+
+async function discoverFindCompany() {
+  const domain = document.getElementById('d-domain').value.trim();
+  const name = document.getElementById('d-name').value.trim();
+  if (!domain && !name) {
+    showAlert('d-find-alert', 'Enter a company domain or name.', 'error');
+    return;
+  }
+  hideAlert('d-find-alert');
+  const btn = document.getElementById('d-find-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Finding…';
+
+  try {
+    const data = await api('POST', '/search/company', { domain: domain || null, name: name || null });
+    D.foragerOrgId = data.forager_id;
+    D.orgName = data.name;
+    D.jobFilter = document.getElementById('d-filter').value.trim() || null;
+    document.getElementById('discover-results').classList.remove('hidden');
+    D.page = 0;
+    await discoverFetchPage();
+  } catch (e) {
+    showAlert('d-find-alert', e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Find Company';
+  }
+}
+
+async function discoverFetchPage() {
+  if (D.loading) return;
+  D.loading = true;
+  setPageActions('loading');
+
+  try {
+    const data = await api('POST', '/discover/people', {
+      org_id: D.foragerOrgId,
+      page: D.page,
+      job_title_filter: D.jobFilter || null,
+    });
+
+    D.totalPages = data.total_pages || 1;
+    D.total = data.total || 0;
+    D.validProfiles = data.valid_profiles || [];
+
+    document.getElementById('d-page-info').textContent =
+      `Page ${D.page + 1} of ${D.totalPages}  ·  ${data.valid_count} valid, ${data.filtered_count} filtered`;
+    document.getElementById('d-org-info').textContent =
+      `${D.orgName}  ·  ${D.total} total results${D.jobFilter ? '  ·  filter: ' + D.jobFilter : ''}`;
+
+    renderValidTable(D.validProfiles);
+    renderFilteredTable(data.filtered_profiles || []);
+    setPageActions('ready');
+
+    // auto-advance if no valid profiles on this page
+    if (D.validProfiles.length === 0 && D.page + 1 < D.totalPages) {
+      showAlert('d-push-alert', `Page ${D.page + 1} had no valid profiles — skipping to next page.`, 'info');
+      D.page++;
+      setTimeout(discoverFetchPage, 800);
+    } else {
+      hideAlert('d-push-alert');
+    }
+  } catch (e) {
+    showAlert('d-push-alert', e.message, 'error');
+    setPageActions('ready');
+  } finally {
+    D.loading = false;
+  }
+}
+
+function renderValidTable(profiles) {
+  const tbody = document.getElementById('d-valid-tbody');
+  if (!profiles.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty">No valid profiles on this page.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = profiles.map(p => {
+    const li = p.linkedin_info ? p.linkedin_info.public_profile_url : null;
+    const liHandle = p.linkedin_info ? p.linkedin_info.public_identifier : null;
+    const role = (p.roles || [])[0] || {};
+    const loc = locationStr(p);
+    return `<tr>
+      <td><strong>${esc(p.full_name)}</strong></td>
+      <td>${esc(role.title || '')}</td>
+      <td>${li ? `<a href="${esc(li)}" target="_blank">${esc(liHandle || 'LinkedIn')}</a>` : '—'}</td>
+      <td>${esc(loc) || '—'}</td>
+      <td>${esc(role.start_date || '') || '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderFilteredTable(profiles) {
+  const tbody = document.getElementById('d-filtered-tbody');
+  document.getElementById('d-filtered-count').textContent = profiles.length;
+  if (!profiles.length) {
+    tbody.innerHTML = '<tr><td colspan="3" class="empty">None filtered out.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = profiles.map(p => `<tr>
+    <td>${esc(p.name || '')}</td>
+    <td>${esc(p.role_title || '')}</td>
+    <td style="color:var(--red)">${esc(p.reason || '')}</td>
+  </tr>`).join('');
+}
+
+function locationStr(person) {
+  const loc = person.location || {};
+  const osm = loc.osm_locations || [];
+  const city = (osm.find(o => o.place_type === 'city') || {}).name || '';
+  const country = (osm.find(o => o.place_type === 'country') || {}).name || '';
+  return [city.split(',')[0], country].filter(Boolean).join(', ');
+}
+
+function setPageActions(state) {
+  const bar = document.getElementById('d-page-actions');
+  const isLast = D.page + 1 >= D.totalPages;
+
+  if (state === 'loading') {
+    bar.innerHTML = '<button class="btn btn-secondary" disabled><span class="spinner"></span>Loading…</button>';
+    return;
+  }
+  if (state === 'done') {
+    bar.innerHTML = `<button class="btn btn-secondary" onclick="discoverReset()">Start new search</button>`;
+    return;
+  }
+  // state === 'ready'
+  if (isLast) {
+    bar.innerHTML = `<button class="btn btn-primary" onclick="discoverPushStop()">Push page &amp; finish</button>`;
+  } else {
+    bar.innerHTML = `
+      <button class="btn btn-secondary" onclick="discoverPushStop()">Push page &amp; stop</button>
+      <button class="btn btn-primary" onclick="discoverPushContinue()">Push page &amp; continue &#x2192;</button>`;
+  }
+}
+
+async function discoverPush() {
+  if (!D.validProfiles.length) return { pushed: 0, results: [] };
+  return api('POST', '/push/contacts', { contacts: D.validProfiles });
+}
+
+async function discoverPushContinue() {
+  setPageActions('loading');
+  try {
+    const data = await discoverPush();
+    showPushSummary(data);
+    D.page++;
+    await discoverFetchPage();
+  } catch (e) {
+    showAlert('d-push-alert', e.message, 'error');
+    setPageActions('ready');
+  }
+}
+
+async function discoverPushStop() {
+  setPageActions('loading');
+  try {
+    const data = await discoverPush();
+    showPushSummary(data);
+    setPageActions('done');
+  } catch (e) {
+    showAlert('d-push-alert', e.message, 'error');
+    setPageActions('ready');
+  }
+}
+
+function showPushSummary(data) {
+  const created = (data.results || []).filter(r => r.action === 'created').length;
+  const updated = (data.results || []).filter(r => r.action === 'updated').length;
+  if (!data.pushed) {
+    document.getElementById('d-push-summary').innerHTML = '';
+    return;
+  }
+  document.getElementById('d-push-summary').innerHTML = `
+    <div class="summary-bar" style="margin-bottom:8px">
+      <span>Pushed <strong>${data.pushed}</strong> contacts to HubSpot</span>
+      <span class="badge badge-green">+${created} created</span>
+      <span class="badge badge-blue">${updated} updated</span>
+    </div>`;
+}
+
+function discoverReset() {
+  D.foragerOrgId = null; D.page = 0; D.totalPages = 0; D.validProfiles = [];
+  document.getElementById('discover-results').classList.add('hidden');
+  document.getElementById('d-push-summary').innerHTML = '';
+  hideAlert('d-push-alert');
+  hideAlert('d-find-alert');
+  document.getElementById('d-domain').value = '';
+  document.getElementById('d-name').value = '';
+  document.getElementById('d-filter').value = '';
+}
+
+// allow Enter to trigger search
+document.addEventListener('DOMContentLoaded', () => {
+  ['d-domain','d-name','d-filter'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', e => {
+      if (e.key === 'Enter') discoverFindCompany();
+    });
+  });
+});
+
+
+// ═══════════════════════════════════════════════════════════════════
+// TAB 2 — EMAIL / PHONE ENRICHMENT
+// ═══════════════════════════════════════════════════════════════════
+
+let epSearchTimer = null;
+let epSelectedCompanyId = null;
+let epContacts = [];
+let epSelected = new Set();
+
+function epSearchCompanies(query) {
+  clearTimeout(epSearchTimer);
+  const dd = document.getElementById('ep-company-dropdown');
+  if (!query || query.length < 2) { dd.classList.remove('open'); return; }
+  epSearchTimer = setTimeout(async () => {
+    try {
+      const data = await api('GET', `/hubspot/companies?name=${encodeURIComponent(query)}`);
+      renderCompanyDropdown(data.companies || []);
+    } catch (e) {
+      dd.classList.remove('open');
+    }
+  }, 300);
+}
+
+function renderCompanyDropdown(companies) {
+  const dd = document.getElementById('ep-company-dropdown');
+  if (!companies.length) { dd.classList.remove('open'); return; }
+  dd.innerHTML = companies.map(c => `
+    <div class="dd-item" onclick="epSelectCompany('${esc(c.id)}', '${esc(c.name)}', '${esc(c.domain || '')}')">
+      <div class="dd-name">${esc(c.name)}</div>
+      ${c.domain ? `<div class="dd-domain">${esc(c.domain)}</div>` : ''}
+    </div>`).join('');
+  dd.classList.add('open');
+}
+
+// close dropdown when clicking outside
+document.addEventListener('click', e => {
+  if (!e.target.closest('.company-finder')) {
+    document.getElementById('ep-company-dropdown').classList.remove('open');
+  }
+});
+
+async function epSelectCompany(id, name, domain) {
+  epSelectedCompanyId = id;
+  document.getElementById('ep-company-input').value = name;
+  document.getElementById('ep-company-dropdown').classList.remove('open');
+  document.getElementById('ep-selected-badge').innerHTML =
+    `<span class="badge badge-blue">${esc(name)}${domain ? ' · ' + esc(domain) : ''}</span>`;
+  document.getElementById('ep-selected-badge').classList.remove('hidden');
+
+  hideAlert('ep-find-alert');
+  document.getElementById('ep-contacts-section').classList.remove('hidden');
+  document.getElementById('ep-contact-count').innerHTML = '<span class="spinner"></span> Loading contacts…';
+  document.getElementById('ep-tbody').innerHTML = '';
+  epSelected.clear();
+  updateEnrichBtn();
+
+  try {
+    const data = await api('GET', `/hubspot/companies/${id}/contacts`);
+    epContacts = data.contacts || [];
+    renderContactsTable();
+    document.getElementById('ep-contact-count').textContent =
+      `${epContacts.length} contact${epContacts.length !== 1 ? 's' : ''} with Forager data`;
+    if (!epContacts.length) {
+      showAlert('ep-find-alert', 'No Forager-enriched contacts found for this company. Discover people first.', 'info');
+    }
+  } catch (e) {
+    showAlert('ep-find-alert', e.message, 'error');
+    document.getElementById('ep-contact-count').textContent = '';
+  }
+}
+
+function renderContactsTable() {
+  const tbody = document.getElementById('ep-tbody');
+  if (!epContacts.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty">No contacts found.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = epContacts.map((c, i) => `
+    <tr id="ep-row-${i}">
+      <td class="check">
+        <input type="checkbox" data-idx="${i}" onchange="epToggleContact(${i}, this.checked)">
+      </td>
+      <td><strong>${esc(c.name) || '—'}</strong></td>
+      <td>${esc(c.job_title) || '—'}</td>
+      <td id="ep-email-${i}" class="${c.email ? '' : 'cell-pending'}">${esc(c.email) || '—'}</td>
+      <td id="ep-phone-${i}" class="${c.phone ? '' : 'cell-pending'}">${esc(c.phone) || '—'}</td>
+    </tr>`).join('');
+}
+
+function epToggleContact(idx, checked) {
+  if (checked) epSelected.add(epContacts[idx].hubspot_id);
+  else epSelected.delete(epContacts[idx].hubspot_id);
+  updateEnrichBtn();
+}
+
+function epToggleAll(checked) {
+  epContacts.forEach((c, i) => {
+    const cb = document.querySelector(`#ep-tbody input[data-idx="${i}"]`);
+    if (cb) cb.checked = checked;
+    if (checked) epSelected.add(c.hubspot_id);
+    else epSelected.delete(c.hubspot_id);
+  });
+  updateEnrichBtn();
+}
+
+function epSelectAll() {
+  document.getElementById('ep-check-all').checked = true;
+  epToggleAll(true);
+}
+
+function epClearAll() {
+  document.getElementById('ep-check-all').checked = false;
+  epToggleAll(false);
+}
+
+function updateEnrichBtn() {
+  const btn = document.getElementById('ep-enrich-btn');
+  const n = epSelected.size;
+  btn.disabled = n === 0;
+  btn.textContent = `Enrich Selected (${n})`;
+}
+
+async function epEnrichSelected() {
+  if (!epSelected.size) return;
+  const btn = document.getElementById('ep-enrich-btn');
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span> Enriching ${epSelected.size}…`;
+  hideAlert('ep-enrich-alert');
+
+  // Mark selected rows as loading
+  epContacts.forEach((c, i) => {
+    if (epSelected.has(c.hubspot_id)) {
+      document.getElementById(`ep-email-${i}`).innerHTML = '<span class="spinner"></span>';
+      document.getElementById(`ep-phone-${i}`).innerHTML = '<span class="spinner"></span>';
+    }
+  });
+
+  try {
+    const data = await api('POST', '/enrich/contacts/email-phone', {
+      contact_ids: [...epSelected],
+    });
+
+    const resultMap = {};
+    (data.results || []).forEach(r => { resultMap[r.hubspot_id] = r; });
+
+    let found = 0;
+    epContacts.forEach((c, i) => {
+      if (!epSelected.has(c.hubspot_id)) return;
+      const r = resultMap[c.hubspot_id] || {};
+      const emailEl = document.getElementById(`ep-email-${i}`);
+      const phoneEl = document.getElementById(`ep-phone-${i}`);
+
+      if (r.email) {
+        emailEl.textContent = r.email;
+        emailEl.className = 'cell-found';
+        found++;
+      } else {
+        emailEl.textContent = '—';
+        emailEl.className = 'cell-not-found';
+      }
+      if (r.phone) {
+        phoneEl.textContent = r.phone;
+        phoneEl.className = 'cell-found';
+        found++;
+      } else {
+        phoneEl.textContent = '—';
+        phoneEl.className = 'cell-not-found';
+      }
+    });
+
+    const msg = found > 0
+      ? `Enrichment complete — ${found} value${found !== 1 ? 's' : ''} found across ${epSelected.size} contact${epSelected.size !== 1 ? 's' : ''}.`
+      : `Enrichment complete — no email or phone data found for the selected contacts.`;
+    showAlert('ep-enrich-alert', msg, found > 0 ? 'success' : 'info');
+  } catch (e) {
+    showAlert('ep-enrich-alert', e.message, 'error');
+    epContacts.forEach((c, i) => {
+      if (epSelected.has(c.hubspot_id)) {
+        document.getElementById(`ep-email-${i}`).textContent = 'Error';
+        document.getElementById(`ep-phone-${i}`).textContent = 'Error';
+      }
+    });
+  } finally {
+    btn.disabled = false;
+    updateEnrichBtn();
+  }
+}
+</script>

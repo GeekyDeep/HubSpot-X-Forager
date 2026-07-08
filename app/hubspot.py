@@ -1,7 +1,10 @@
 """HubSpot CRM API client — creates/updates companies and contacts."""
+import logging
 import os
 import httpx
 from typing import Optional
+
+log = logging.getLogger(__name__)
 
 BASE_URL = "https://api.hubapi.com"
 
@@ -93,6 +96,61 @@ def _map_industry(value: str) -> Optional[str]:
     return normalized if normalized in _HUBSPOT_INDUSTRIES else None
 
 
+_CUSTOM_CONTACT_PROPS = [
+    {"name": "linkedin_headline",    "label": "LinkedIn Headline",    "type": "string", "fieldType": "text", "groupName": "contactinformation"},
+    {"name": "linkedin_profile_url", "label": "LinkedIn Profile URL", "type": "string", "fieldType": "text", "groupName": "contactinformation"},
+    {"name": "company_linkedin_url", "label": "Company LinkedIn URL", "type": "string", "fieldType": "text", "groupName": "contactinformation"},
+    {"name": "role_start_date",      "label": "Role Start Date",      "type": "string", "fieldType": "text", "groupName": "contactinformation"},
+    {"name": "forager_person_id",    "label": "Forager Person ID",    "type": "string", "fieldType": "text", "groupName": "contactinformation"},
+    {"name": "forager_linkedin_bio",  "label": "Forager LinkedIn Bio",  "type": "string", "fieldType": "textarea", "groupName": "contactinformation"},
+]
+_custom_contact_props_ready = False
+
+_CUSTOM_COMPANY_PROPS = [
+    {
+        "name": "forager_company_id",
+        "label": "Forager Company ID",
+        "type": "string",
+        "fieldType": "text",
+        "groupName": "companyinformation",
+    },
+    {
+        "name": "employee_range",
+        "label": "Employee Range",
+        "type": "string",
+        "fieldType": "text",
+        "groupName": "companyinformation",
+    },
+]
+_custom_props_ready = False
+
+
+def _ensure_custom_contact_props() -> None:
+    global _custom_contact_props_ready
+    if _custom_contact_props_ready:
+        return
+    url = f"{BASE_URL}/crm/v3/properties/contacts"
+    with httpx.Client(timeout=15) as client:
+        for prop in _CUSTOM_CONTACT_PROPS:
+            resp = client.post(url, json=prop, headers=_headers())
+            if resp.status_code not in (200, 201, 409):
+                log.warning("Could not create contact property %s: %s", prop["name"], resp.text)
+    _custom_contact_props_ready = True
+
+
+def _ensure_custom_company_props() -> None:
+    global _custom_props_ready
+    if _custom_props_ready:
+        return
+    url = f"{BASE_URL}/crm/v3/properties/companies"
+    with httpx.Client(timeout=15) as client:
+        for prop in _CUSTOM_COMPANY_PROPS:
+            resp = client.post(url, json=prop, headers=_headers())
+            if resp.status_code not in (200, 201, 409):
+                log.warning("Could not create HubSpot property %s: %s", prop["name"], resp.text)
+    _custom_props_ready = True
+
+
 def _headers() -> dict:
     return {
         "Authorization": f"Bearer {os.environ['HUBSPOT_ACCESS_TOKEN']}",
@@ -104,6 +162,7 @@ def _headers() -> dict:
 
 def upsert_company(enriched: dict) -> dict:
     """Create or update a HubSpot company from Forager enrichment data."""
+    _ensure_custom_company_props()
     domain = enriched.get("domain")
     existing_id = _find_company_by_domain(domain) if domain else None
 
@@ -121,12 +180,15 @@ def _company_props(enriched: dict) -> dict:
         "numberofemployees": enriched.get("headcount"),
         "annualrevenue": enriched.get("revenue"),
         "industry": _map_industry(enriched.get("industry")),
+        "founded_year": enriched.get("founded_year"),
         "city": enriched.get("city"),
         "state": enriched.get("state"),
         "country": enriched.get("country"),
         "phone": enriched.get("phone"),
         "website": enriched.get("website") or enriched.get("domain"),
         "linkedin_company_page": enriched.get("linkedin_url"),
+        "forager_company_id": str(enriched["forager_id"]) if enriched.get("forager_id") else None,
+        "employee_range": enriched.get("headcount_range"),
     }.items() if v is not None}
 
 
@@ -150,8 +212,7 @@ def _create_company(props: dict) -> dict:
     url = f"{BASE_URL}/crm/v3/objects/companies"
     with httpx.Client(timeout=15) as client:
         resp = client.post(url, json={"properties": props}, headers=_headers())
-        if not resp.is_success:
-            raise ValueError(f"HubSpot company create failed {resp.status_code}: {resp.text}")
+        resp.raise_for_status()
         data = resp.json()
         return {"id": data["id"], "action": "created", "properties": data.get("properties", {})}
 
@@ -160,8 +221,7 @@ def _update_company(company_id: str, props: dict) -> dict:
     url = f"{BASE_URL}/crm/v3/objects/companies/{company_id}"
     with httpx.Client(timeout=15) as client:
         resp = client.patch(url, json={"properties": props}, headers=_headers())
-        if not resp.is_success:
-            raise ValueError(f"HubSpot company update failed {resp.status_code}: {resp.text}")
+        resp.raise_for_status()
         data = resp.json()
         return {"id": data["id"], "action": "updated", "properties": data.get("properties", {})}
 
@@ -170,6 +230,7 @@ def _update_company(company_id: str, props: dict) -> dict:
 
 def upsert_contact(enriched: dict, company_id: Optional[str] = None) -> dict:
     """Create or update a HubSpot contact from Forager enrichment data."""
+    _ensure_custom_contact_props()
     email = enriched.get("email")
     linkedin = enriched.get("linkedin_url")
 
@@ -193,16 +254,22 @@ def upsert_contact(enriched: dict, company_id: Optional[str] = None) -> dict:
 
 def _contact_props(enriched: dict) -> dict:
     return {k: v for k, v in {
-        "firstname": enriched.get("first_name"),
-        "lastname": enriched.get("last_name"),
-        "email": enriched.get("email"),
-        "phone": enriched.get("phone"),
-        "jobtitle": enriched.get("job_title"),
-        "company": enriched.get("company_name"),
-        "city": enriched.get("city"),
-        "state": enriched.get("state"),
-        "country": enriched.get("country"),
-        "website": enriched.get("company_domain"),
+        "firstname":            enriched.get("first_name"),
+        "lastname":             enriched.get("last_name"),
+        "email":                enriched.get("email"),
+        "phone":                enriched.get("phone"),
+        "jobtitle":             enriched.get("job_title"),
+        "company":              enriched.get("company_name"),
+        "city":                 enriched.get("city"),
+        "state":                enriched.get("state"),
+        "country":              enriched.get("country"),
+        "website":              enriched.get("company_domain"),
+        "linkedin_headline":    enriched.get("headline"),
+        "forager_linkedin_bio": enriched.get("description"),
+        "linkedin_profile_url": enriched.get("linkedin_url"),
+        "company_linkedin_url": enriched.get("company_linkedin_url"),
+        "role_start_date":      enriched.get("role_start_date"),
+        "forager_person_id":    str(enriched["forager_id"]) if enriched.get("forager_id") else None,
     }.items() if v is not None}
 
 
@@ -223,7 +290,18 @@ def _find_contact_by_email(email: str) -> Optional[str]:
 
 
 def _find_contact_by_linkedin(linkedin_url: str) -> Optional[str]:
-    # LinkedIn handle property not available in all HubSpot portals; skip gracefully
+    url = f"{BASE_URL}/crm/v3/objects/contacts/search"
+    payload = {
+        "filterGroups": [{"filters": [{"propertyName": "linkedin_profile_url", "operator": "EQ", "value": linkedin_url}]}],
+        "properties": ["id"],
+        "limit": 1,
+    }
+    with httpx.Client(timeout=15) as client:
+        resp = client.post(url, json=payload, headers=_headers())
+        if resp.status_code == 200:
+            results = resp.json().get("results", [])
+            if results:
+                return results[0]["id"]
     return None
 
 
@@ -253,6 +331,88 @@ def _associate_contact_company(contact_id: str, company_id: str) -> None:
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
+
+def find_company_for_discover(domain: str = None, name: str = None) -> Optional[dict]:
+    """Find a HubSpot company and return its stored forager_company_id for people discovery."""
+    company_id = None
+    if domain:
+        company_id = _find_company_by_domain(domain)
+    if not company_id and name:
+        matches = search_companies_by_name(name)
+        if matches:
+            company_id = matches[0]["id"]
+    if not company_id:
+        return None
+    url = f"{BASE_URL}/crm/v3/objects/companies/{company_id}"
+    with httpx.Client(timeout=15) as client:
+        resp = client.get(url, params={"properties": "name,domain,forager_company_id"}, headers=_headers())
+        resp.raise_for_status()
+        p = resp.json().get("properties", {})
+        return {
+            "hubspot_id": company_id,
+            "name": p.get("name"),
+            "domain": p.get("domain"),
+            "forager_company_id": p.get("forager_company_id"),
+        }
+
+
+def search_companies_by_name(name: str) -> list[dict]:
+    url = f"{BASE_URL}/crm/v3/objects/companies/search"
+    payload = {
+        "filterGroups": [{"filters": [{"propertyName": "name", "operator": "CONTAINS_TOKEN", "value": name}]}],
+        "properties": ["name", "domain"],
+        "limit": 20,
+    }
+    with httpx.Client(timeout=15) as client:
+        resp = client.post(url, json=payload, headers=_headers())
+        resp.raise_for_status()
+        return [
+            {"id": r["id"], "name": r["properties"].get("name"), "domain": r["properties"].get("domain")}
+            for r in resp.json().get("results", [])
+        ]
+
+
+def get_company_contacts(company_id: str) -> list[dict]:
+    with httpx.Client(timeout=15) as client:
+        assoc_url = f"{BASE_URL}/crm/v4/objects/companies/{company_id}/associations/contacts"
+        resp = client.get(assoc_url, headers=_headers())
+        resp.raise_for_status()
+        contact_ids = [str(r["toObjectId"]) for r in resp.json().get("results", [])]
+
+    if not contact_ids:
+        return []
+
+    batch_url = f"{BASE_URL}/crm/v3/objects/contacts/batch/read"
+    payload = {
+        "inputs": [{"id": cid} for cid in contact_ids],
+        "properties": ["firstname", "lastname", "email", "phone", "jobtitle", "forager_person_id"],
+    }
+    with httpx.Client(timeout=15) as client:
+        resp = client.post(batch_url, json=payload, headers=_headers())
+        resp.raise_for_status()
+        results = []
+        for r in resp.json().get("results", []):
+            p = r.get("properties", {})
+            if not p.get("forager_person_id"):
+                continue
+            results.append({
+                "hubspot_id": r["id"],
+                "name": f"{p.get('firstname') or ''} {p.get('lastname') or ''}".strip(),
+                "job_title": p.get("jobtitle"),
+                "email": p.get("email"),
+                "phone": p.get("phone"),
+                "forager_person_id": p.get("forager_person_id"),
+            })
+        return results
+
+
+def _get_contact_props(contact_id: str, properties: list[str]) -> dict:
+    url = f"{BASE_URL}/crm/v3/objects/contacts/{contact_id}"
+    with httpx.Client(timeout=15) as client:
+        resp = client.get(url, params={"properties": ",".join(properties)}, headers=_headers())
+        resp.raise_for_status()
+        return resp.json().get("properties", {})
+
 
 def _linkedin_handle(url: str) -> Optional[str]:
     if not url:
