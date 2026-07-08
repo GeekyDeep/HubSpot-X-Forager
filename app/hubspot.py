@@ -160,11 +160,16 @@ def _headers() -> dict:
 
 # ── Companies ─────────────────────────────────────────────────────────────────
 
-def upsert_company(enriched: dict) -> dict:
-    """Create or update a HubSpot company from Forager enrichment data."""
+def upsert_company(enriched: dict, existing_id: Optional[str] = None) -> dict:
+    """Create or update a HubSpot company from Forager enrichment data.
+
+    Pass existing_id to force-update a known company (e.g. from a webhook) and
+    skip the search entirely — prevents duplicate company creation loops.
+    """
     _ensure_custom_company_props()
-    domain = enriched.get("domain")
-    existing_id = _find_company_by_domain(domain) if domain else None
+    if not existing_id:
+        domain = enriched.get("domain")
+        existing_id = _find_company_by_domain(domain) if domain else None
 
     props = _company_props(enriched)
     if existing_id:

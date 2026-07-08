@@ -447,7 +447,7 @@ def _enrich_hubspot_company(company_id: str) -> None:
 
         enriched = forager.enrich_company(domain=domain, name=name, linkedin_id=linkedin_id)
         if enriched:
-            hubspot.upsert_company(enriched)
+            hubspot.upsert_company(enriched, existing_id=company_id)
             log.info("Webhook enriched company %s", company_id)
 
         # Enrich already-associated contacts that don't have a Forager ID yet
