@@ -451,7 +451,7 @@
           <thead>
             <tr>
               <th class="check"><input type="checkbox" id="ep-check-all" onchange="epToggleAll(this.checked)"></th>
-              <th>Name</th><th>Job Title</th><th>Email</th><th>Phone</th>
+              <th>Name</th><th>Job Title</th><th>LinkedIn</th><th>Email</th><th>Phone</th>
             </tr>
           </thead>
           <tbody id="ep-tbody"></tbody>
@@ -847,19 +847,25 @@ async function epSelectCompany(id, name, domain) {
 function renderContactsTable() {
   const tbody = document.getElementById('ep-tbody');
   if (!epContacts.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="empty">No contacts found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="empty">No contacts found.</td></tr>';
     return;
   }
-  tbody.innerHTML = epContacts.map((c, i) => `
+  tbody.innerHTML = epContacts.map((c, i) => {
+    const li = c.linkedin_url
+      ? `<a href="${esc(c.linkedin_url)}" target="_blank" rel="noopener">View ↗</a>`
+      : '—';
+    return `
     <tr id="ep-row-${i}">
       <td class="check">
         <input type="checkbox" data-idx="${i}" onchange="epToggleContact(${i}, this.checked)">
       </td>
       <td><strong>${esc(c.name) || '—'}</strong></td>
       <td>${esc(c.job_title) || '—'}</td>
+      <td>${li}</td>
       <td id="ep-email-${i}" class="${c.email ? '' : 'cell-pending'}">${esc(c.email) || '—'}</td>
       <td id="ep-phone-${i}" class="${c.phone ? '' : 'cell-pending'}">${esc(c.phone) || '—'}</td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 }
 
 function epToggleContact(idx, checked) {
@@ -932,12 +938,12 @@ async function epEnrichSelected(mode) {
       if (fetchEmail) {
         const el = document.getElementById(`ep-email-${i}`);
         if (r.email) { el.textContent = r.email; el.className = 'cell-found'; found++; }
-        else { el.textContent = '—'; el.className = 'cell-not-found'; }
+        else { el.textContent = 'Not Found'; el.className = 'cell-not-found'; }
       }
       if (fetchPhone) {
         const el = document.getElementById(`ep-phone-${i}`);
         if (r.phone) { el.textContent = r.phone; el.className = 'cell-found'; found++; }
-        else { el.textContent = '—'; el.className = 'cell-not-found'; }
+        else { el.textContent = 'Not Found'; el.className = 'cell-not-found'; }
       }
     });
 

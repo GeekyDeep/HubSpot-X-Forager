@@ -404,7 +404,7 @@ def get_company_contacts(company_id: str) -> list[dict]:
     batch_url = f"{BASE_URL}/crm/v3/objects/contacts/batch/read"
     payload = {
         "inputs": [{"id": cid} for cid in contact_ids],
-        "properties": ["firstname", "lastname", "email", "phone", "jobtitle", "forager_person_id"],
+        "properties": ["firstname", "lastname", "email", "phone", "jobtitle", "forager_person_id", "linkedin_profile_url"],
     }
     with httpx.Client(timeout=15) as client:
         resp = client.post(batch_url, json=payload, headers=_headers())
@@ -421,6 +421,7 @@ def get_company_contacts(company_id: str) -> list[dict]:
                 "email": p.get("email"),
                 "phone": p.get("phone"),
                 "forager_person_id": p.get("forager_person_id"),
+                "linkedin_url": p.get("linkedin_profile_url"),
             })
         return results
 
