@@ -489,7 +489,7 @@ def _enrich_hubspot_contact(contact_id: str) -> None:
     try:
         import httpx as _httpx
         url = f"https://api.hubapi.com/crm/v3/objects/contacts/{contact_id}"
-        params = {"properties": "linkedin_profile_url,forager_person_id"}
+        params = {"properties": "linkedin_profile_url,forager_person_id,website,company_linkedin_url,company,jobtitle"}
         resp = _httpx.get(url, params=params, headers=hubspot._headers(), timeout=15)
         resp.raise_for_status()
         props = resp.json().get("properties", {})
@@ -511,6 +511,17 @@ def _enrich_hubspot_contact(contact_id: str) -> None:
             return
 
         enriched = forager.enrich_person(person, fetch_email=False, fetch_phone=False)
+
+        # Preserve user-entered company fields. Forager picks the most recently started
+        # current role, which may be a secondary role (e.g. co-founder at a side org)
+        # rather than the company the user intentionally linked this contact to.
+        if props.get("website"):
+            enriched["company_domain"] = props["website"]
+        if props.get("company_linkedin_url"):
+            enriched["company_linkedin_url"] = props["company_linkedin_url"]
+        if props.get("company"):
+            enriched["company_name"] = props["company"]
+
         hubspot.upsert_contact(enriched)
         log.info("Webhook enriched contact %s via LinkedIn slug %s", contact_id, linkedin_slug)
     except Exception as exc:
