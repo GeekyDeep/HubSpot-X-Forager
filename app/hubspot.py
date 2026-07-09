@@ -121,6 +121,20 @@ _CUSTOM_COMPANY_PROPS = [
         "fieldType": "text",
         "groupName": "companyinformation",
     },
+    {
+        "name": "operating_status",
+        "label": "Operating Status",
+        "type": "string",
+        "fieldType": "text",
+        "groupName": "companyinformation",
+    },
+    {
+        "name": "company_keywords",
+        "label": "Company Keywords",
+        "type": "string",
+        "fieldType": "text",
+        "groupName": "companyinformation",
+    },
 ]
 _custom_props_ready = False
 
@@ -194,6 +208,8 @@ def _company_props(enriched: dict) -> dict:
         "linkedin_company_page": enriched.get("linkedin_url"),
         "forager_company_id": str(enriched["forager_id"]) if enriched.get("forager_id") else None,
         "employee_range": enriched.get("headcount_range"),
+        "operating_status": enriched.get("operating_status"),
+        "company_keywords": ", ".join(enriched["keywords"]) if enriched.get("keywords") else None,
     }.items() if v is not None}
 
 
