@@ -131,7 +131,7 @@ _CUSTOM_COMPANY_PROPS = [
     },
     {
         "name": "company_keywords",
-        "label": "Company Keywords",
+        "label": "Forager Keywords",
         "type": "string",
         "fieldType": "text",
         "groupName": "companyinformation",
