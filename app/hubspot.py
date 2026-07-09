@@ -103,6 +103,7 @@ _CUSTOM_CONTACT_PROPS = [
     {"name": "role_start_date",      "label": "Role Start Date",      "type": "string", "fieldType": "text", "groupName": "contactinformation"},
     {"name": "forager_person_id",    "label": "Forager Person ID",    "type": "string", "fieldType": "text", "groupName": "contactinformation"},
     {"name": "forager_linkedin_bio",  "label": "Forager LinkedIn Bio",  "type": "string", "fieldType": "textarea", "groupName": "contactinformation"},
+    {"name": "detailed_description",  "label": "Detailed Description",  "type": "string", "fieldType": "textarea", "groupName": "contactinformation"},
 ]
 _custom_contact_props_ready = False
 
@@ -294,6 +295,7 @@ def _contact_props(enriched: dict) -> dict:
         "company_linkedin_url": enriched.get("company_linkedin_url"),
         "role_start_date":      enriched.get("role_start_date"),
         "forager_person_id":    str(enriched["forager_id"]) if enriched.get("forager_id") else None,
+        "detailed_description": enriched.get("about"),
     }.items() if v is not None}
 
 
